@@ -1,0 +1,162 @@
+import 'package:flutter/material.dart';
+import 'map_spec.dart';
+import 'map_controller.dart';
+
+class NodesLayer extends StatelessWidget {
+  final MapController controller;
+  final double scale;
+  final Offset offset;
+  final Function(int nodeId) onNodeTap;
+
+  const NodesLayer({
+    super.key,
+    required this.controller,
+    required this.scale,
+    required this.offset,
+    required this.onNodeTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final mapSpec = controller.mapSpec;
+    if (mapSpec == null) return const SizedBox();
+
+    return Stack(
+      children: mapSpec.nodes.map((node) {
+        return _NodeWidget(
+          node: node,
+          controller: controller,
+          scale: scale,
+          offset: offset,
+          onTap: () => onNodeTap(node.id),
+        );
+      }).toList(),
+    );
+  }
+}
+
+class _NodeWidget extends StatelessWidget {
+  final Node node;
+  final MapController controller;
+  final double scale;
+  final Offset offset;
+  final VoidCallback onTap;
+
+  const _NodeWidget({
+    required this.node,
+    required this.controller,
+    required this.scale,
+    required this.offset,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final nodeState = controller.getNodeState(node.id);
+    final canTap = controller.canTapNode(node.id);
+    
+    final scaledPosition = Offset(
+      node.pos.dx * scale + offset.dx,
+      node.pos.dy * scale + offset.dy,
+    );
+
+    return Positioned(
+      left: scaledPosition.dx - (node.tapRadius * scale),
+      top: scaledPosition.dy - (node.tapRadius * scale),
+      child: GestureDetector(
+        onTap: canTap ? onTap : null,
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          width: node.tapRadius * 2 * scale,
+          height: node.tapRadius * 2 * scale,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: canTap ? Colors.blue.withOpacity(0.3) : Colors.transparent,
+          ),
+          child: Center(
+            child: _NodeImage(
+              node: node,
+              nodeState: nodeState,
+              scale: scale,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _NodeImage extends StatelessWidget {
+  final Node node;
+  final NodeState nodeState;
+  final double scale;
+
+  const _NodeImage({
+    required this.node,
+    required this.nodeState,
+    required this.scale,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    String assetPath;
+    switch (nodeState) {
+      case NodeState.locked:
+        assetPath = node.assets.locked;
+        break;
+      case NodeState.next:
+        assetPath = node.assets.next;
+        break;
+      case NodeState.done:
+        assetPath = node.assets.done;
+        break;
+    }
+
+    // Don't show node 0
+    if (node.id == 0) {
+      return const SizedBox();
+    }
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      width: 96 * scale,
+      height: 96 * scale,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: _getNodeColor(nodeState),
+        border: Border.all(
+          color: nodeState == NodeState.next ? Colors.yellow : Colors.white,
+          width: nodeState == NodeState.next ? 4 * scale : 3 * scale,
+        ),
+        boxShadow: nodeState == NodeState.next ? [
+          BoxShadow(
+            color: Colors.orange.withOpacity(0.6),
+            blurRadius: 8 * scale,
+            spreadRadius: 2 * scale,
+          ),
+        ] : null,
+      ),
+      child: Center(
+        child: Text(
+          nodeState == NodeState.locked ? '?' : '${node.id}',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 36 * scale,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Color _getNodeColor(NodeState state) {
+    switch (state) {
+      case NodeState.locked:
+        return Colors.grey.shade600;
+      case NodeState.next:
+        return Colors.orange.shade600;
+      case NodeState.done:
+        return Colors.green.shade600;
+    }
+  }
+}
