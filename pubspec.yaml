@@ -10,6 +10,9 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.8
+  flutter_svg: ^2.0.10+1
+  path_parsing: ^1.0.1
+  path_drawing: ^1.0.1
 
 dev_dependencies:
   flutter_test:
@@ -22,4 +25,7 @@ flutter:
     - assets/
     - assets/map/
     - assets/map/safari_world_map.json
+    - assets/map/safari_world_map_svg.json
+    - assets/map/aqua_world_map.json
+    - assets/map/aqua_map.jpeg
     - assets/image/

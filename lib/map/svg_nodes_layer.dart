@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
-import 'map_spec.dart';
-import 'map_controller.dart';
+import 'svg_map_spec.dart';
+import 'svg_map_controller.dart';
 
-class NodesLayer extends StatelessWidget {
-  final MapController controller;
+class SvgNodesLayer extends StatelessWidget {
+  final SvgMapController controller;
   final double scale;
   final Offset offset;
   final Function(int nodeId) onNodeTap;
 
-  const NodesLayer({
+  const SvgNodesLayer({
     super.key,
     required this.controller,
     required this.scale,
@@ -19,11 +19,11 @@ class NodesLayer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final mapSpec = controller.mapSpec;
-    if (mapSpec == null) return const SizedBox();
+    if (mapSpec == null || controller.roadPathMetric == null) return const SizedBox();
 
     return Stack(
       children: mapSpec.nodes.map((node) {
-        return _NodeWidget(
+        return _SvgNodeWidget(
           node: node,
           controller: controller,
           scale: scale,
@@ -35,14 +35,14 @@ class NodesLayer extends StatelessWidget {
   }
 }
 
-class _NodeWidget extends StatelessWidget {
-  final Node node;
-  final MapController controller;
+class _SvgNodeWidget extends StatelessWidget {
+  final SvgNode node;
+  final SvgMapController controller;
   final double scale;
   final Offset offset;
   final VoidCallback onTap;
 
-  const _NodeWidget({
+  const _SvgNodeWidget({
     required this.node,
     required this.controller,
     required this.scale,
@@ -55,10 +55,23 @@ class _NodeWidget extends StatelessWidget {
     final nodeState = controller.getNodeState(node.id);
     final canTap = controller.canTapNode(node.id);
     
+    // Get node position from path
+    final roadPathMetric = controller.roadPathMetric!;
+    final distance = roadPathMetric.length * node.position;
+    final tangent = roadPathMetric.getTangentForOffset(distance);
+    
+    if (tangent == null) return const SizedBox();
+    
+    // Apply same transform as road painter: translate offset, then scale
+    // Canvas does: translate(offset) then scale(scale)
+    // Matrix math: final_pos = (original_pos + offset) * scale
+    // But widgets need the final screen position, so we calculate: 
+    // screen_pos = (original_pos * scale) + (offset * scale)
     final scaledPosition = Offset(
-      node.pos.dx * scale + offset.dx,
-      node.pos.dy * scale + offset.dy,
+      tangent.position.dx * scale + offset.dx,
+      tangent.position.dy * scale + offset.dy,
     );
+
 
     return Positioned(
       left: scaledPosition.dx - (node.tapRadius * scale),
@@ -74,7 +87,7 @@ class _NodeWidget extends StatelessWidget {
             color: canTap ? Colors.blue.withOpacity(0.3) : Colors.transparent,
           ),
           child: Center(
-            child: _NodeImage(
+            child: _SvgNodeImage(
               node: node,
               nodeState: nodeState,
               scale: scale,
@@ -86,12 +99,12 @@ class _NodeWidget extends StatelessWidget {
   }
 }
 
-class _NodeImage extends StatelessWidget {
-  final Node node;
+class _SvgNodeImage extends StatelessWidget {
+  final SvgNode node;
   final NodeState nodeState;
   final double scale;
 
-  const _NodeImage({
+  const _SvgNodeImage({
     required this.node,
     required this.nodeState,
     required this.scale,
@@ -99,19 +112,6 @@ class _NodeImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    String assetPath;
-    switch (nodeState) {
-      case NodeState.locked:
-        assetPath = node.assets.locked;
-        break;
-      case NodeState.next:
-        assetPath = node.assets.next;
-        break;
-      case NodeState.done:
-        assetPath = node.assets.done;
-        break;
-    }
-
     // Don't show node 0
     if (node.id == 0) {
       return const SizedBox();

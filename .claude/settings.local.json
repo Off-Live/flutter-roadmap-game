@@ -5,7 +5,15 @@
       "Bash(flutter run:*)",
       "Bash(flutter:*)",
       "Bash(git init:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(gh repo create:*)",
+      "Bash(git remote add:*)",
+      "Bash(git push:*)",
+      "Bash(git remote set-url:*)",
+      "Read(/Users/dan-16/.pub-cache/hosted/pub.dev/**)",
+      "WebSearch",
+      "Bash(pkill:*)",
+      "Bash(xcrun simctl shutdown:*)"
     ],
     "deny": [],
     "ask": []

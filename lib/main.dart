@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'map/map_screen.dart';
+import 'map/svg_map_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -22,7 +22,7 @@ class RoadmapGameApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,
       ),
-      home: const MapScreen(),
+      home: const SvgMapScreen(),
       debugShowCheckedModeBanner: false,
     );
   }

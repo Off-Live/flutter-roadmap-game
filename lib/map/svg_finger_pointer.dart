@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
-import 'map_spec.dart';
-import 'map_controller.dart';
+import 'svg_map_spec.dart';
+import 'svg_map_controller.dart';
 
-class FingerPointer extends StatefulWidget {
-  final MapController controller;
+class SvgFingerPointer extends StatefulWidget {
+  final SvgMapController controller;
   final double scale;
   final Offset offset;
 
-  const FingerPointer({
+  const SvgFingerPointer({
     super.key,
     required this.controller,
     required this.scale,
@@ -15,10 +15,10 @@ class FingerPointer extends StatefulWidget {
   });
 
   @override
-  State<FingerPointer> createState() => _FingerPointerState();
+  State<SvgFingerPointer> createState() => _SvgFingerPointerState();
 }
 
-class _FingerPointerState extends State<FingerPointer>
+class _SvgFingerPointerState extends State<SvgFingerPointer>
     with TickerProviderStateMixin {
   late AnimationController _bounceController;
   late Animation<double> _bounceAnimation;
@@ -38,8 +38,6 @@ class _FingerPointerState extends State<FingerPointer>
       parent: _bounceController,
       curve: Curves.easeInOut,
     ));
-
-    // Don't start animation in initState - start only when needed
   }
 
   void _startAnimation() {
@@ -67,7 +65,7 @@ class _FingerPointerState extends State<FingerPointer>
       listenable: widget.controller,
       builder: (context, child) {
         final mapSpec = widget.controller.mapSpec;
-        if (mapSpec == null) {
+        if (mapSpec == null || widget.controller.roadPathMetric == null) {
           _stopAnimation();
           return const SizedBox();
         }
@@ -80,7 +78,7 @@ class _FingerPointerState extends State<FingerPointer>
 
         // Find the next node (orange node)
         final currentStageId = widget.controller.currentStageId;
-        final nextNode = mapSpec.nodes.cast<Node?>().firstWhere(
+        final nextNode = mapSpec.nodes.cast<SvgNode?>().firstWhere(
           (node) => node?.id == currentStageId,
           orElse: () => null,
         );
@@ -93,15 +91,25 @@ class _FingerPointerState extends State<FingerPointer>
         // Start animation only when finger should be visible
         _startAnimation();
 
+        // Get node position from path
+        final roadPathMetric = widget.controller.roadPathMetric!;
+        final distance = roadPathMetric.length * nextNode.position;
+        final tangent = roadPathMetric.getTangentForOffset(distance);
+        
+        if (tangent == null) {
+          _stopAnimation();
+          return const SizedBox();
+        }
+
         // Calculate finger position (bottom-right of the node)
         final nodePos = Offset(
-          nextNode.pos.dx * widget.scale + widget.offset.dx,
-          nextNode.pos.dy * widget.scale + widget.offset.dy,
+          tangent.position.dx * widget.scale + widget.offset.dx,
+          tangent.position.dy * widget.scale + widget.offset.dy,
         );
 
         // Position finger at bottom-right of node
         final fingerPos = Offset(
-          nodePos.dx + (6 * widget.scale), // Node radius + some offset
+          nodePos.dx + (6 * widget.scale),
           nodePos.dy + (6 * widget.scale),
         );
 

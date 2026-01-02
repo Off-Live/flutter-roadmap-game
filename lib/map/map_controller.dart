@@ -3,8 +3,9 @@ import 'package:flutter/material.dart';
 import 'dart:ui';
 import 'map_spec.dart';
 import 'road_path_builder.dart';
+import '../character_layer.dart';
 
-class MapController extends ChangeNotifier {
+class MapController extends ChangeNotifier implements CharacterController {
   MapSpec? _mapSpec;
   int _currentStageId = 1; // Next stage to unlock (starts at 1, so 0 is already done)
   bool _isMoving = false;
@@ -71,12 +72,18 @@ class MapController extends ChangeNotifier {
       curve: Curves.easeInOut,
     );
 
+    // Throttle notifications to reduce CPU usage
+    DateTime? lastNotification;
     animation.addListener(() {
-      final distance = pathMetric.length * animation.value;
-      final tangent = pathMetric.getTangentForOffset(distance);
-      if (tangent != null) {
-        _characterPosition = tangent.position;
-        notifyListeners();
+      final now = DateTime.now();
+      if (lastNotification == null || now.difference(lastNotification!).inMilliseconds > 16) { // ~60fps max
+        final distance = pathMetric.length * animation.value;
+        final tangent = pathMetric.getTangentForOffset(distance);
+        if (tangent != null) {
+          _characterPosition = tangent.position;
+          notifyListeners();
+          lastNotification = now;
+        }
       }
     });
 

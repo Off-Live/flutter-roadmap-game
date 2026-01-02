@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
 
-// Simple character layer that works with both controller types
+// Abstract interface for different controller types
+abstract class CharacterController {
+  bool get isMoving;
+  Offset get characterPosition;
+  dynamic get mapSpec; // Can be MapSpec or SvgMapSpec
+}
+
 class CharacterLayer extends StatelessWidget {
-  final dynamic controller; // Can be MapController or SvgMapController
+  final CharacterController controller;
   final double scale;
   final Offset offset;
 
@@ -27,20 +33,10 @@ class CharacterLayer extends StatelessWidget {
       character.size.height * scale,
     );
     
-    // Calculate widget top-left position considering anchor
-    // characterPos is the point on the path where character should be anchored
-    // We need to subtract the offset caused by the anchor point
-    final widgetTopLeft = Offset(
-      characterPos.dx - (character.size.width * character.anchor.dx),
-      characterPos.dy - (character.size.height * character.anchor.dy),
-    );
-    
-    // Apply same transform as road painter and nodes: (original * scale) + offset
     final anchoredPosition = Offset(
-      widgetTopLeft.dx * scale + offset.dx,
-      widgetTopLeft.dy * scale + offset.dy,
+      (characterPos.dx * scale) - (scaledSize.width * character.anchor.dx) + offset.dx,
+      (characterPos.dy * scale) - (scaledSize.height * character.anchor.dy) + offset.dy,
     );
-    
 
     return Positioned(
       left: anchoredPosition.dx,

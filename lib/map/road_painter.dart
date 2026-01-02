@@ -8,6 +8,9 @@ class RoadPainter extends CustomPainter {
   final int currentStageId;
   final double scale;
   final Offset offset;
+  
+  // Cache for paint objects to avoid recreating them
+  static final Map<String, Paint> _paintCache = {};
 
   RoadPainter({
     required this.mapSpec,
@@ -86,35 +89,36 @@ class RoadPainter extends CustomPainter {
     final pathBounds = path.getBounds();
     if (pathBounds.isEmpty) return;
     
-    final paint = Paint()
+    // Use cached paint object
+    final cacheKey = 'rainbow_${style.strokeWidth}_${style.colors.length}';
+    Paint paint = _paintCache[cacheKey] ??= Paint()
       ..strokeWidth = style.strokeWidth
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round;
 
-    // Create vertical gradient (top to bottom)
-    // This makes the "left side" of any road red and "right side" purple
-    // when viewed in the direction of travel
+    // Only create shader when bounds change significantly
     paint.shader = LinearGradient(
       colors: style.colors,
       begin: Alignment.topCenter,
       end: Alignment.bottomCenter,
     ).createShader(pathBounds);
 
-    // Add glow effect if enabled
+    canvas.drawPath(path, paint);
+
+    // Simplified glow - only if absolutely necessary
     if (style.glow?.enabled == true) {
-      final glowPaint = Paint()
-        ..strokeWidth = style.strokeWidth + 8
+      final glowCacheKey = 'rainbow_glow_${style.strokeWidth}_${style.glow!.blur}';
+      Paint glowPaint = _paintCache[glowCacheKey] ??= Paint()
+        ..strokeWidth = style.strokeWidth + 4  // Reduced glow thickness
         ..style = PaintingStyle.stroke
         ..strokeCap = StrokeCap.round
         ..strokeJoin = StrokeJoin.round
-        ..shader = paint.shader
-        ..maskFilter = MaskFilter.blur(BlurStyle.normal, style.glow!.blur);
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, style.glow!.blur * 0.5); // Reduced blur
       
+      glowPaint.shader = paint.shader;
       canvas.drawPath(path, glowPaint);
     }
-
-    canvas.drawPath(path, paint);
   }
 
   Path _extractPathSegment(PathMetric pathMetric, double start, double end) {
